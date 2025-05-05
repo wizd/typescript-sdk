@@ -17,6 +17,7 @@ const MAXIMUM_MESSAGE_SIZE = "4mb";
 export interface RestServerTransportOptions {
   endpoint?: string;
   port?: string | number;
+  supportTenantId?: boolean;
 }
 
 /**
@@ -36,6 +37,7 @@ export class RestServerTransport implements Transport {
   private _started: boolean = false;
   private _endpoint: string;
   private _port: number;
+  private _supportTenantId: boolean;
   private _server: ReturnType<typeof express> | null = null;
   private _httpServer: ReturnType<typeof express.application.listen> | null =
     null;
@@ -55,6 +57,7 @@ export class RestServerTransport implements Transport {
   constructor(options: RestServerTransportOptions = {}) {
     this._endpoint = options.endpoint || "/rest";
     this._port = Number(options.port) || 9593;
+    this._supportTenantId = options.supportTenantId || false;
   }
 
   /**
@@ -66,9 +69,19 @@ export class RestServerTransport implements Transport {
     }
 
     this._server = express();
-    this._server.post(this._endpoint, (req, res) => {
-      this.handleRequest(req, res, req.body);
-    });
+    
+    if (this._supportTenantId) {
+      // 添加带租户ID的路由
+      this._server.post(`${this._endpoint}/:tenantId`, (req, res) => {
+        const tenantId = req.params.tenantId;
+        this.handleRequest(req, res, req.body, tenantId);
+      });
+    } else {
+      // 保持原有路由
+      this._server.post(this._endpoint, (req, res) => {
+        this.handleRequest(req, res, req.body);
+      });
+    }
 
     return new Promise((resolve, reject) => {
       try {
@@ -125,10 +138,11 @@ export class RestServerTransport implements Transport {
   async handleRequest(
     req: IncomingMessage,
     res: ServerResponse,
-    parsedBody?: unknown
+    parsedBody?: unknown,
+    tenantId?: string
   ): Promise<void> {
     if (req.method === "POST") {
-      await this.handlePostRequest(req, res, parsedBody);
+      await this.handlePostRequest(req, res, parsedBody, tenantId);
     } else {
       res.writeHead(405).end(
         JSON.stringify({
@@ -149,7 +163,8 @@ export class RestServerTransport implements Transport {
   private async handlePostRequest(
     req: IncomingMessage,
     res: ServerResponse,
-    parsedBody?: unknown
+    parsedBody?: unknown,
+    tenantId?: string
   ): Promise<void> {
     try {
       // validate the Accept header
@@ -223,7 +238,19 @@ export class RestServerTransport implements Transport {
 
         // handle each message
         for (const message of messages) {
-          this.onmessage?.(message);
+          if (tenantId && "method" in message) {
+            // 为每个消息添加租户ID
+            const messageWithTenant = {
+              ...message,
+              params: {
+                ...message.params,
+                _tenantId: tenantId // 添加租户ID作为隐含参数
+              }
+            };
+            this.onmessage?.(messageWithTenant);
+          } else {
+            this.onmessage?.(message);
+          }
         }
       } else if (hasRequests) {
         // Create a unique identifier for this request batch
@@ -245,7 +272,19 @@ export class RestServerTransport implements Transport {
 
         // Process all messages
         for (const message of messages) {
-          this.onmessage?.(message);
+          if (tenantId && "method" in message) {
+            // 为每个消息添加租户ID
+            const messageWithTenant = {
+              ...message,
+              params: {
+                ...message.params,
+                _tenantId: tenantId // 添加租户ID作为隐含参数
+              }
+            };
+            this.onmessage?.(messageWithTenant);
+          } else {
+            this.onmessage?.(message);
+          }
         }
 
         // Wait for responses and send them
