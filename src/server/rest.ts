@@ -29,24 +29,24 @@ export interface RestServerTransportOptions {
  * Usage example:
  *
  * ```typescript
- * // 创建基本同步传输
+ * // Create basic synchronous transport
  * const transport = new RestServerTransport({ endpoint: '/rest', port: '9593' });
  * await server.connect(transport);
  * await transport.startServer();
  * 
- * // 带租户ID支持的传输
+ * // Transport with tenant ID support
  * const multitenantTransport = new RestServerTransport({ 
  *   endpoint: '/api', 
  *   port: 9593, 
  *   supportTenantId: true 
  * });
  * 
- * // 带API Key认证的传输
+ * // Transport with API Key authentication
  * const secureTransport = new RestServerTransport({ 
  *   endpoint: '/secure', 
  *   port: 9593, 
  *   apiKey: 'your-secret-api-key',
- *   apiKeyHeaderName: 'X-API-Key' // 可选，默认为 'X-API-Key'
+ *   apiKeyHeaderName: 'X-API-Key' // Optional, defaults to 'X-API-Key'
  * });
  * ```
  */
@@ -92,13 +92,13 @@ export class RestServerTransport implements Transport {
     this._server = express();
     
     if (this._supportTenantId) {
-      // 添加带租户ID的路由
+      // Add route with tenant ID
       this._server.post(`${this._endpoint}/:tenantId`, (req, res) => {
         const tenantId = req.params.tenantId;
         this.handleRequest(req, res, req.body, tenantId);
       });
     } else {
-      // 保持原有路由
+      // Keep original route
       this._server.post(this._endpoint, (req, res) => {
         this.handleRequest(req, res, req.body);
       });
@@ -182,7 +182,7 @@ export class RestServerTransport implements Transport {
    * Validates API Key from the request header
    */
   private validateApiKey(req: IncomingMessage): boolean {
-    // 如果没有设置API Key，则不需要验证
+    // If no API Key is set, no validation needed
     if (!this._apiKey) {
       return true;
     }
@@ -201,7 +201,7 @@ export class RestServerTransport implements Transport {
     tenantId?: string
   ): Promise<void> {
     try {
-      // 验证API Key
+      // Validate API Key
       if (!this.validateApiKey(req)) {
         res.writeHead(401).end(
           JSON.stringify({
@@ -288,12 +288,12 @@ export class RestServerTransport implements Transport {
         // handle each message
         for (const message of messages) {
           if (tenantId && "method" in message) {
-            // 为每个消息添加租户ID
+            // Add tenant ID to each message
             const messageWithTenant = {
               ...message,
               params: {
                 ...message.params,
-                _tenantId: tenantId // 添加租户ID作为隐含参数
+                _tenantId: tenantId // Add tenant ID as implicit parameter
               }
             };
             this.onmessage?.(messageWithTenant);
@@ -322,12 +322,12 @@ export class RestServerTransport implements Transport {
         // Process all messages
         for (const message of messages) {
           if (tenantId && "method" in message) {
-            // 为每个消息添加租户ID
+            // Add tenant ID to each message
             const messageWithTenant = {
               ...message,
               params: {
                 ...message.params,
-                _tenantId: tenantId // 添加租户ID作为隐含参数
+                _tenantId: tenantId // Add tenant ID as implicit parameter
               }
             };
             this.onmessage?.(messageWithTenant);

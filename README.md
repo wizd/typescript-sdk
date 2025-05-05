@@ -1,16 +1,16 @@
 # MCP Typescript SDK by ChatMCP
 
-## 如何使用
+## How to Use
 
-1. 安装SDK
+1. Install SDK
 
 ```shell
 npm i @chatmcp/sdk
 ```
 
-2. 配置MCP服务器
+2. Configure MCP Server
 
-### 基本配置
+### Basic Configuration
 
 ```typescript
 import { RestServerTransport } from "@chatmcp/sdk/server/rest.js";
@@ -26,7 +26,7 @@ async function main() {
 }
 ```
 
-### 多租户支持
+### Multi-tenant Support
 
 ```typescript
 import { RestServerTransport } from "@chatmcp/sdk/server/rest.js";
@@ -35,21 +35,21 @@ async function main() {
   const port = 9593;
   const endpoint = "/api";
 
-  // 启用多租户支持
+  // Enable multi-tenant support
   const transport = new RestServerTransport({ 
     port, 
     endpoint,
-    supportTenantId: true  // 启用多租户支持
+    supportTenantId: true  // Enable multi-tenant support
   });
   
   await server.connect(transport);
   await transport.startServer();
   
-  // 现在可以通过 /api/{tenantId} 访问，如 /api/tenant1, /api/tenant2
+  // Now accessible via /api/{tenantId}, such as /api/tenant1, /api/tenant2
 }
 ```
 
-### API认证支持
+### API Authentication Support
 
 ```typescript
 import { RestServerTransport } from "@chatmcp/sdk/server/rest.js";
@@ -58,13 +58,13 @@ async function main() {
   const port = 9593;
   const endpoint = "/secure";
 
-  // 启用API Key认证
+  // Enable API Key authentication
   const transport = new RestServerTransport({ 
     port, 
     endpoint,
-    apiKey: "your-secret-api-key",                // 设置API密钥
-    apiKeyHeaderName: "X-API-Key"                 // 可选，默认为"X-API-Key"
-    // 也可以使用标准的Authorization头
+    apiKey: "your-secret-api-key",                // Set API key
+    apiKeyHeaderName: "X-API-Key"                 // Optional, defaults to "X-API-Key"
+    // You can also use the standard Authorization header
     // apiKeyHeaderName: "Authorization"
   });
   
@@ -73,9 +73,9 @@ async function main() {
 }
 ```
 
-3. 请求API
+3. API Requests
 
-### 基本请求
+### Basic Request
 
 ```curl
 curl -X POST http://127.0.0.1:9593/rest \
@@ -95,7 +95,7 @@ curl -X POST http://127.0.0.1:9593/rest \
 }'
 ```
 
-### 多租户请求
+### Multi-tenant Request
 
 ```curl
 curl -X POST http://127.0.0.1:9593/api/tenant1 \
@@ -115,7 +115,7 @@ curl -X POST http://127.0.0.1:9593/api/tenant1 \
 }'
 ```
 
-### 带API认证的请求
+### Request with API Authentication
 
 ```curl
 curl -X POST http://127.0.0.1:9593/secure \
@@ -136,7 +136,7 @@ curl -X POST http://127.0.0.1:9593/secure \
 }'
 ```
 
-### 使用Authorization头的API认证请求
+### Request with API Authentication Using Authorization Header
 
 ```curl
 curl -X POST http://127.0.0.1:9593/secure \
@@ -157,15 +157,15 @@ curl -X POST http://127.0.0.1:9593/secure \
 }'
 ```
 
-### 在请求处理程序中获取租户ID
+### Accessing Tenant ID in Request Handlers
 
-当您启用多租户支持（`supportTenantId: true`）时，租户ID会作为特殊参数`_tenantId`添加到每个请求的`params`对象中。下面是一个示例，展示如何在请求处理程序中获取租户ID：
+When you enable multi-tenant support (`supportTenantId: true`), the tenant ID is added to each request's `params` object as a special parameter `_tenantId`. Here's an example showing how to access the tenant ID in request handlers:
 
 ```typescript
 import { RestServerTransport } from "@chatmcp/sdk/server/rest.js";
 
 async function main() {
-  // 创建支持多租户的传输
+  // Create transport with multi-tenant support
   const transport = new RestServerTransport({ 
     port: 9593, 
     endpoint: "/api",
@@ -174,33 +174,33 @@ async function main() {
   
   await server.connect(transport);
   
-  // 设置请求处理程序
+  // Set up request handlers
   server.setRequestHandler(ListToolsRequestSchema, async (request) => {
-    // 获取租户ID
+    // Get tenant ID
     const tenantId = request.params._tenantId;
-    console.log(`处理来自租户 ${tenantId} 的请求`);
+    console.log(`Processing request from tenant ${tenantId}`);
     
-    // 可以根据租户ID返回不同的工具列表
+    // Return different tool lists based on tenant ID
     return {
       tools: tenantId === "admin" ? ADMIN_TOOLS : REGULAR_TOOLS
     };
   });
   
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    // 获取租户ID
+    // Get tenant ID
     const tenantId = request.params._tenantId;
     
-    // 使用租户ID进行权限检查或租户隔离
+    // Use tenant ID for permission checks or tenant isolation
     if (!hasPermission(tenantId, request.params.name)) {
-      throw new Error(`租户 ${tenantId} 无权访问工具 ${request.params.name}`);
+      throw new Error(`Tenant ${tenantId} does not have permission to access tool ${request.params.name}`);
     }
     
-    // 将租户ID传递给工具执行函数，以支持租户隔离
+    // Pass tenant ID to tool execution function for tenant isolation
     return await executeToolAndHandleErrors(
       request.params.name,
       {
         ...request.params.arguments || {},
-        _tenantId: tenantId  // 传递租户ID到工具执行上下文
+        _tenantId: tenantId  // Pass tenant ID to tool execution context
       },
       taskManager
     );
@@ -209,16 +209,16 @@ async function main() {
   await transport.startServer();
 }
 
-// 示例权限检查函数
+// Example permission check function
 function hasPermission(tenantId: string, toolName: string): boolean {
-  // 实现您的权限检查逻辑
+  // Implement your permission check logic
   return true;
 }
 ```
 
-通过这种方式，您可以在请求处理程序中获取租户ID，并用它来实现：
+Using this approach, you can access the tenant ID in request handlers to implement:
 
-1. 租户隔离 - 确保每个租户只能访问其自己的数据
-2. 租户特定的配置 - 为不同租户提供不同的工具或功能
-3. 多租户认证和授权 - 结合API密钥实现更细粒度的访问控制
-4. 审计日志 - 记录每个租户的访问和操作
+1. Tenant Isolation - Ensure each tenant can only access their own data
+2. Tenant-specific Configuration - Provide different tools or features for different tenants
+3. Multi-tenant Authentication and Authorization - Combine with API keys for more granular access control
+4. Audit Logging - Record access and operations for each tenant
