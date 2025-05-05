@@ -1,16 +1,24 @@
 {
-  "name": "@chatmcp/sdk",
-  "version": "1.0.6",
-  "description": "Typescript Implementation of Model Context Protocols",
-  "author": "ChatMCP",
-  "homepage": "https://mcp.so",
+  "name": "@wizdy/typescript-sdk",
+  "version": "1.0.0",
+  "description": "Typescript Implementation of Model Context Protocols with multi-tenant and API key support",
+  "author": "wizdy",
+  "homepage": "https://vcorp.ai",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chatmcp/typescript-sdk.git"
+    "url": "https://github.com/wizd/typescript-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/chatmcp/typescript-sdk/issues"
+    "url": "https://github.com/wizd/typescript-sdk/issues"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "typescript",
+    "sdk",
+    "multi-tenant",
+    "api-authentication"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,7 +34,8 @@
     "build:all": "npm run build -ws --include-workspace-root",
     "watch": "tsc --watch",
     "check": "npx @biomejs/biome check --write --unsafe",
-    "link": "npm link -ws --include-workspace-root"
+    "link": "npm link -ws --include-workspace-root",
+    "prepublishOnly": "npm run build"
   },
   "license": "MIT",
   "dependencies": {
