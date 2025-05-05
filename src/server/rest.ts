@@ -199,6 +199,7 @@ export class RestServerTransport implements Transport {
 
     // Check for Bearer token authentication (prioritized over API key)
     if (this._bearerToken) {
+      console.log("Validate Bearer token: ", req.headers.authorization);
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7); // Remove 'Bearer ' prefix
