@@ -64,12 +64,21 @@ async function main() {
     endpoint,
     apiKey: "your-secret-api-key",                // Set API key
     apiKeyHeaderName: "X-API-Key"                 // Optional, defaults to "X-API-Key"
-    // You can also use the standard Authorization header
-    // apiKeyHeaderName: "Authorization"
+  });
+  
+  // OR use standard Bearer Token authentication (recommended)
+  const bearerTransport = new RestServerTransport({ 
+    port, 
+    endpoint: "/secure-bearer",
+    bearerToken: "your-secret-bearer-token"       // Set Bearer token value
   });
   
   await server.connect(transport);
   await transport.startServer();
+  
+  // Or if using Bearer token
+  // await server.connect(bearerTransport);
+  // await bearerTransport.startServer();
 }
 ```
 
@@ -141,7 +150,7 @@ curl -X POST http://127.0.0.1:9593/secure \
 ```curl
 curl -X POST http://127.0.0.1:9593/secure \
 -H "Content-Type: application/json" \
--H "Authorization: Bearer your-secret-api-key" \
+-H "Authorization: Bearer your-secret-bearer-token" \
 -d '{
   "jsonrpc": "2.0",
   "id": "1",

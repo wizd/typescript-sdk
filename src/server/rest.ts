@@ -20,6 +20,7 @@ export interface RestServerTransportOptions {
   supportTenantId?: boolean;
   apiKey?: string;
   apiKeyHeaderName?: string;
+  bearerToken?: string;
 }
 
 /**
@@ -48,6 +49,13 @@ export interface RestServerTransportOptions {
  *   apiKey: 'your-secret-api-key',
  *   apiKeyHeaderName: 'X-API-Key' // Optional, defaults to 'X-API-Key'
  * });
+ * 
+ * // Transport with Bearer Token authentication
+ * const secureTransport = new RestServerTransport({ 
+ *   endpoint: '/secure', 
+ *   port: 9593, 
+ *   bearerToken: 'your-secret-bearer-token'
+ * });
  * ```
  */
 export class RestServerTransport implements Transport {
@@ -57,6 +65,7 @@ export class RestServerTransport implements Transport {
   private _supportTenantId: boolean;
   private _apiKey?: string;
   private _apiKeyHeaderName: string;
+  private _bearerToken?: string;
   private _server: ReturnType<typeof express> | null = null;
   private _httpServer: ReturnType<typeof express.application.listen> | null =
     null;
@@ -79,6 +88,7 @@ export class RestServerTransport implements Transport {
     this._supportTenantId = options.supportTenantId || false;
     this._apiKey = options.apiKey;
     this._apiKeyHeaderName = options.apiKeyHeaderName || "X-API-Key";
+    this._bearerToken = options.bearerToken;
   }
 
   /**
@@ -182,13 +192,27 @@ export class RestServerTransport implements Transport {
    * Validates API Key from the request header
    */
   private validateApiKey(req: IncomingMessage): boolean {
-    // If no API Key is set, no validation needed
-    if (!this._apiKey) {
+    // If no authentication is required, return true
+    if (!this._apiKey && !this._bearerToken) {
       return true;
     }
 
-    const providedApiKey = req.headers[this._apiKeyHeaderName.toLowerCase()];
-    return providedApiKey === this._apiKey;
+    // Check for Bearer token authentication (prioritized over API key)
+    if (this._bearerToken) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+        return token === this._bearerToken;
+      }
+    }
+
+    // Fall back to API Key validation if not authenticated with Bearer token
+    if (this._apiKey) {
+      const providedApiKey = req.headers[this._apiKeyHeaderName.toLowerCase()];
+      return providedApiKey === this._apiKey;
+    }
+
+    return false;
   }
 
   /**
