@@ -101,6 +101,9 @@ export class RestServerTransport implements Transport {
 
     this._server = express();
     
+    // 添加必要的中间件，确保能够正确解析headers
+    this._server.use(express.json());
+    
     if (this._supportTenantId) {
       // Add route with tenant ID
       this._server.post(`${this._endpoint}/:tenantId`, (req, res) => {
@@ -197,22 +200,31 @@ export class RestServerTransport implements Transport {
       return true;
     }
 
+    // 记录所有请求头信息，用于调试
+    console.log("Request headers:", req.headers);
+
     // Check for Bearer token authentication (prioritized over API key)
     if (this._bearerToken) {
-      console.log("Validate Bearer token: ", req.headers.authorization);
       const authHeader = req.headers.authorization;
+      console.log("Authorization header:", authHeader);
+      
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+        console.log("Extracted token:", token.substring(0, 3) + "..." + (token.length > 6 ? token.substring(token.length - 3) : ""));
         return token === this._bearerToken;
+      } else {
+        console.log("Bearer token not found in Authorization header");
       }
     }
 
     // Fall back to API Key validation if not authenticated with Bearer token
     if (this._apiKey) {
       const providedApiKey = req.headers[this._apiKeyHeaderName.toLowerCase()];
+      console.log(`API Key header (${this._apiKeyHeaderName}):`, providedApiKey ? "Present" : "Not present");
       return providedApiKey === this._apiKey;
     }
 
+    console.log("Authentication failed: No valid credentials provided");
     return false;
   }
 
@@ -233,7 +245,7 @@ export class RestServerTransport implements Transport {
             jsonrpc: "2.0",
             error: {
               code: -32001,
-              message: "Unauthorized: Invalid API Key",
+              message: "Unauthorized: Invalid authentication credentials",
             },
             id: null,
           })
