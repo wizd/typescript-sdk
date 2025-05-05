@@ -18,6 +18,8 @@ export interface RestServerTransportOptions {
   endpoint?: string;
   port?: string | number;
   supportTenantId?: boolean;
+  apiKey?: string;
+  apiKeyHeaderName?: string;
 }
 
 /**
@@ -27,10 +29,25 @@ export interface RestServerTransportOptions {
  * Usage example:
  *
  * ```typescript
- * // Create a basic synchronous transport
+ * // 创建基本同步传输
  * const transport = new RestServerTransport({ endpoint: '/rest', port: '9593' });
  * await server.connect(transport);
  * await transport.startServer();
+ * 
+ * // 带租户ID支持的传输
+ * const multitenantTransport = new RestServerTransport({ 
+ *   endpoint: '/api', 
+ *   port: 9593, 
+ *   supportTenantId: true 
+ * });
+ * 
+ * // 带API Key认证的传输
+ * const secureTransport = new RestServerTransport({ 
+ *   endpoint: '/secure', 
+ *   port: 9593, 
+ *   apiKey: 'your-secret-api-key',
+ *   apiKeyHeaderName: 'X-API-Key' // 可选，默认为 'X-API-Key'
+ * });
  * ```
  */
 export class RestServerTransport implements Transport {
@@ -38,6 +55,8 @@ export class RestServerTransport implements Transport {
   private _endpoint: string;
   private _port: number;
   private _supportTenantId: boolean;
+  private _apiKey?: string;
+  private _apiKeyHeaderName: string;
   private _server: ReturnType<typeof express> | null = null;
   private _httpServer: ReturnType<typeof express.application.listen> | null =
     null;
@@ -58,6 +77,8 @@ export class RestServerTransport implements Transport {
     this._endpoint = options.endpoint || "/rest";
     this._port = Number(options.port) || 9593;
     this._supportTenantId = options.supportTenantId || false;
+    this._apiKey = options.apiKey;
+    this._apiKeyHeaderName = options.apiKeyHeaderName || "X-API-Key";
   }
 
   /**
@@ -158,6 +179,19 @@ export class RestServerTransport implements Transport {
   }
 
   /**
+   * Validates API Key from the request header
+   */
+  private validateApiKey(req: IncomingMessage): boolean {
+    // 如果没有设置API Key，则不需要验证
+    if (!this._apiKey) {
+      return true;
+    }
+
+    const providedApiKey = req.headers[this._apiKeyHeaderName.toLowerCase()];
+    return providedApiKey === this._apiKey;
+  }
+
+  /**
    * Handles POST requests containing JSON-RPC messages
    */
   private async handlePostRequest(
@@ -167,6 +201,21 @@ export class RestServerTransport implements Transport {
     tenantId?: string
   ): Promise<void> {
     try {
+      // 验证API Key
+      if (!this.validateApiKey(req)) {
+        res.writeHead(401).end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32001,
+              message: "Unauthorized: Invalid API Key",
+            },
+            id: null,
+          })
+        );
+        return;
+      }
+
       // validate the Accept header
       const acceptHeader = req.headers.accept;
       if (
