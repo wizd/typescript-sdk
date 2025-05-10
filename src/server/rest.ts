@@ -457,7 +457,7 @@ export class RestServerTransport implements Transport {
   public registerRoute(
     method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
-    handler: import('express').RequestHandler
+    handler: express.RequestHandler
   ): void {
     // 如果还未初始化express实例，则先初始化（但不listen）
     if (!this._server) {
