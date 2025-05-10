@@ -126,6 +126,11 @@ export class RestServerTransport implements Transport {
           resolve();
         });
 
+        // 设置服务器超时时间为4小时
+        if (this._httpServer) {
+          this._httpServer.timeout = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+        }
+
         this._httpServer.on("error", (error) => {
           console.error("Server error:", error);
           this.onerror?.(error);
