@@ -446,4 +446,26 @@ export class RestServerTransport implements Transport {
       }
     }
   }
+
+  /**
+   * 注册自定义路由，可用于文件下载等扩展功能。
+   * 必须在 startServer() 之前调用。
+   * @param method HTTP方法，如 'get' | 'post' | 'put' | 'delete' | 'patch'
+   * @param path 路由路径，如 '/download'
+   * @param handler Express风格的处理函数 (req, res, next)
+   */
+  public registerRoute(
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    path: string,
+    handler: import('express').RequestHandler
+  ): void {
+    // 如果还未初始化express实例，则先初始化（但不listen）
+    if (!this._server) {
+      this._server = express();
+      // 保证和startServer一致，添加必要的中间件
+      this._server.use(express.json());
+    }
+    // 注册自定义路由
+    this._server[method](path, handler);
+  }
 }
