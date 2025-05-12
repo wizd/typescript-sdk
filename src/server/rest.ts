@@ -245,6 +245,7 @@ export class RestServerTransport implements Transport {
     try {
       // Validate API Key
       if (!this.validateApiKey(req)) {
+        console.log("validateApiKey failed: ", req.headers);
         res.writeHead(401).end(
           JSON.stringify({
             jsonrpc: "2.0",
